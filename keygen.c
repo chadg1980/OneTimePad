@@ -2,9 +2,9 @@
 Chad H. Glaser
 KEYGEN:
 	this file creates a key of of specified length
-	the characters will be 27 allowe4d characters
+	the characters will be 27 allowed characters
 	26 capital letters and 1 space
-	
+	I added 65 to the random number for ASCII Decimal values
 	This program takes one argument, the length of the key
 
 
@@ -16,16 +16,22 @@ KEYGEN:
 
 int main(int argc, char *argv[]){
 
-int x = atoi(argv[1]);
-char *i = (malloc (x*sizeof(char)));
-/*rand usage: http://www.cplusplus.com/reference/cstdlib/srand/*/
-srand(time(NULL));
+	int keys = atoi(argv[1]);
+	keys = keys - 1;
+	int k;
+	
+	int i = 0;
+	/*rand usage: http://www.cplusplus.com/reference/cstdlib/srand/*/
+	srand(time(NULL));
 
-
-for(x; x > 0; x--){ 
-	 
-	printf("%d", rand()%27+1);
-}
-printf("\n");
+	for(i; i < keys; i++){ 
+		 
+		k = (rand()%27);
+		if (k == 26)
+			printf("%c", 32);
+		else
+			printf("%c", (k+65));
+	}
+	printf("\n");
 return 0;
 }

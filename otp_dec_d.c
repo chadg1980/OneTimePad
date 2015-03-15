@@ -95,8 +95,36 @@ char *incoming(int nyFD){
 	 return gotten;
 	 
 }
-
-
+/*
+void decode(char *cipherText, char* key){
+	int i;
+	int j = 0;
+	char *plainText = (char *) malloc(1024*1024);
+	printf("cipherText:\n%s", cipherText);
+	while(cipherText[j] != 10){
+		/*remove the 65 we added to make it printable*/
+		/*if(cipherText[j] != 91){
+			cipherText[j] = cipherText[j] - 65;
+			plainText[j] = (cipherText[j] - ( key[j] - 65) ) ;
+		
+			if (plainText[j] < 0){
+				plainText[j] = plainText[j] + 25;
+				
+			}
+			
+			if(plainText[j] >= 25){
+				plainText[j] = plainText[j] % 25;
+			}
+			plainText[j] = plainText[j] + 65;
+		}
+		else
+			plainText[j] = 32;
+		j = j + 1;
+	}
+	plainText[j] = 10;
+	printf("%s", plainText);
+}
+*/
 void doStuff(nyFD){
 	//char *gotten = (char*) malloc(500);
 	//char gotten[512];

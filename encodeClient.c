@@ -122,6 +122,7 @@ openTextFile(int sockFD, char* myFile){
 			
 	}
 	incoming(sockFD);
+	incoming(sockFD);
 	fclose(textFile);
 	free(contents);
 }

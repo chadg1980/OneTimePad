@@ -28,7 +28,7 @@ void error(const char *msg)
 
 void argCheck(int argCount){
 	if (argCount < 2) {
-		fprintf(stderr,"ERROR, usage filename plaintext key portnumber\n");
+		fprintf(stderr,"ERROR, usage filename portnumber\n");
 		exit(1);
     }
 
@@ -38,11 +38,11 @@ void outgoing(int nyFD, char *msgOut){
 	char *outgone = (char*) malloc(500);
 	
 	int bytesOut = 0;
-	char tempMsg[12] = "testing 123";
+	//char tempMsg[12] = "testing 123";
 	
 	memset(&outgone[0], 0, sizeof(outgone));
 	
-	//snprintf(outgone, 13, "%s", msgOut);
+	snprintf(outgone, sizeof(msgOut), "%s", msgOut);
 	bytesOut = send(nyFD,tempMsg,13, 0);
 	printf("Sent bytes %d\n", bytesOut); 
 	  
@@ -83,6 +83,7 @@ char *incoming(int nyFD){
 	
 	memset(&gotten[0], 0, length+512);
 	outgoing(nyFD, sizeFirst);
+	
 	while (bytesTotal <= length){
 		if (bytesIN = recv(nyFD, inBuf, 512, 0 ) < 0){
 			printf("nothing was received\n");
@@ -105,28 +106,48 @@ char *incoming(int nyFD){
 		if(bytesTotal >= length)
 				break;
 	}
-	 //printf("%s", gotten);
 	outgoing(nyFD, sizeFirst);
-	 free(inBuf);
-	 free(sizeFirst);
-	 return gotten;
-	 
+	free(inBuf);
+	free(sizeFirst);
+	return gotten;
 }
 
 /*This function will create the cipher text and return the cipher text file*/
-void encode(char *text, char *key ){
+char *encode(char *text, char *key, char *cipher ){
+	char *nwln = (char*) sizeof(char*);
 	int i = (strlen(text)-1);
 	int k = 0;
-	int letter;
-	printf("i: %d\n", i);
+	int j;
+	
+	//printf("text\tkey\tcipher\n");
 	for (k; k < i; k++){
-		printf("%c",text[k]);
-		int letter = text[k] - 65;
-			if(letter < 0){
-				letter += 65;
-			}
-		printf("     %d\n", letter);
+		
+		/*only dealing with the capital letters ASCII*/
+		if( (text[k]>=65) && (text[k] <= 90) ){
+			cipher[k] = ( (text[k]-65)   + (key[k]-65) );
+			if(cipher[k] > 25)
+				cipher[k] = cipher[k] % 25;
+		}
+		else if( text[k] == 32){
+			cipher[k] = 91;
+		}
+		else{
+			printf("error Message\n");
+			printf("send a kill signal\n");
+		}
+		/*
+		printf("%d\t", (text[k]-65));
+		printf("%d\t", (key[k]-65));
+		printf("%d\n", cipher[k]);
+		*/
+		/*add 65 for ASCII printable letters*/
+		if(cipher[k] != 91)
+			cipher[k] = cipher[k] + 65;
 	}
+	cipher[i] = 10;
+	printf("%s", text);
+	
+	return cipher;
 
 
 
@@ -137,16 +158,20 @@ void switchBoard(int nyFD){
 	
 	char *backFirst = (char*) malloc(1024*1024);
 	char *backSecond = (char*) malloc(1024*1024);
+	char *cipher = (char*) malloc(1024 * 1024);
 	int length;
+	int i;
 	backFirst = incoming(nyFD);
 	backSecond = incoming(nyFD);
-	encode(backFirst, backSecond);
+	cipher = encode(backFirst, backSecond, cipher);
 	
-	//printf("backFirst:%s, backSecond:%s\n", backFirst, backSecond);
+	outgoing(nyFD, cipher);
+	
+	
 	
 	free(backFirst);
 	free(backSecond);
-	
+	free(cipher);
 	
 
 }
