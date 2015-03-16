@@ -18,9 +18,10 @@ int main(int argc, char *argv[]){
 
 	int keys = atoi(argv[1]);
 	keys = keys - 1;
+	char *printMe = (char*)malloc(keys);
 	int k;
-	
 	int i = 0;
+	
 	/*rand usage: http://www.cplusplus.com/reference/cstdlib/srand/*/
 	srand(time(NULL));
 
@@ -28,10 +29,15 @@ int main(int argc, char *argv[]){
 		 
 		k = (rand()%27);
 		if (k == 26)
-			printf("%c", 32);
+			printMe[i] = k;
 		else
-			printf("%c", (k+65));
+			printMe[i] = (k+65);
+			//printf("%c", (k+65));
 	}
-	printf("\n");
+	/*Adding the newline at the end makes life down the road easier
+		I will do all my while loops look for the newline character!
+	*/
+	printMe[i] = 10;
+	fprintf(stdout, "%s", printMe);
 return 0;
 }

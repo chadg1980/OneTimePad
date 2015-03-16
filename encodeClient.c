@@ -31,51 +31,164 @@ void error(const char *msg)
     exit(0);
 }
 
-
-	/*-------------------------------------SEND-------------------------*/
-void outgoing(sockFD){
-	char *buffer = (char*) malloc(512);
-	char *sendBuf = (char*) malloc(512);
-	int len,  outBytes;
-	memset(&sendBuf[0], 0, sizeof(sendBuf));
-	memset(&buffer[0], 0, sizeof(buffer));
-		
-	len = strlen(buffer);
-		
-	outBytes = send(sockFD, buffer, len+1, 0);
+/*-------------------------------------SEND-------------------------*/
+void outgoing(int sockFD, char* message, int size ){
 	
+	char *sendBuf = (char*) malloc(1024*1024);
+	int outBytes = 0;
+	int len = 0;
+	memset(&sendBuf[0], 0, sizeof(sendBuf));
+	snprintf(sendBuf, sizeof(sendBuf), "%s", message);
+	outBytes = send(sockFD, sendBuf, sizeof(sendBuf), 0);
 	if(outBytes < 0){
 		perror("Error writing to socker");
 	}
-	/*printf("buffer is %s, I sent %d Bytes\n", buffer, outBytes); */
+	//printf("GOOD SEND\n");
 }
 	/*-------------------------------------------RECV------------------------------*/
-void incoming(sockFD){
+char *incoming(int sockFD){
 	
-	char *printBuf = (char*) malloc(512);
+	
 	char *recvBuf = (char*) malloc(512);
-	int  inBytes, len;
-	memset(&recvBuf[0], 0, sizeof(recvBuf));
-	memset(&printBuf[0], 0, sizeof(printBuf));
+	int  inBytes;
+	memset(&recvBuf[0], 0, 512);
 	
-	inBytes = recv(sockFD, recvBuf, 500, 0);
+	
+	inBytes = recv(sockFD, recvBuf, 512, 0);
 	if (inBytes > 0){
-		snprintf(printBuf, inBytes+1, "%s", recvBuf);
-		printf("%s", printBuf);
-		printf("\n");
+		
+		//printf("%s", recvBuf);
+		//printf("Bytes: %d\n", inBytes);
+		//printf("\n");
 	}
 	else{
-		perror("ERROR reading from socket");
+		perror("ERROR reading from this socket");
 	}
-	free(printBuf);
-	free(recvBuf);
+	//printf("GOOD RECEIVE: %s\n", recvBuf);
+	return(recvBuf);
+	
+}
+
+
+int helloMSG (int sockFD){
+	char hello[] = "1138";
+	int size = strlen(hello);
+	char *returnVal = (char*)malloc(512);
+	int handShake;
+	outgoing(sockFD, hello, size );
+	returnVal = incoming(sockFD);
+	
+	handShake = atoi(returnVal);
+	free(returnVal);
+	
+	if (handShake == 99){
+		printf("cannot find enc_dec_d on that port\n");
+		exit(2);
+	}
 
 }
 
-void doStuff(int sockFD){
+void keyCheck(int sockFD){
+	char *rv =(char *) malloc(512);
+	int kill;
+	rv = incoming(sockFD);
+	kill = atoi(rv);
+	if(kill == 99){
+		printf("key too short\n");
+		close(sockFD);
+		exit(1);
+	}
 	
-	outgoing(sockFD);
-	incoming(sockFD);
+
+}
+
+void getCipher(int sockFD){
+
+	/*
+	inBuf will take 512 byte chunks, and copy that to gotten
+	gotten will way for a size to allocate memory
+	sizeFirst will take the size sent by the client, which helps to know when to stop receiving data
+	*/
+	char *inBuf =  (char*) malloc(512);
+	char *gotten;
+	char *sizeFirst = (char*) malloc(512);
+	char goodCopy[] = "1111";
+	/*
+	bytesIN couts the bytes from receive, 
+	bytesTotal keeps a running total
+	length is the int of the char* sizeFirst
+	i is a flag to keep track if it is the first pass through or not for copying data
+	*/
+	int bytesIN;
+	int bytesTotal = 0;
+	int length;
+	int i = 0;
+	int x = 0;
+	size_t gottenSize;
+	/*send ready to receive*/
+	outgoing(sockFD, goodCopy, 5);
+	
+	
+	/*-----------------------------------------------------RECEIVE SIZE-----------------------*/
+	sizeFirst = incoming(sockFD);
+	
+	length = atoi(sizeFirst);
+	gotten = (char*) malloc(length+512);
+	
+	
+	memset(&gotten[0], 0, length+512);
+	/*----------------------------------------------------SEDNING REPLY--------------------------*/
+	outgoing(sockFD, goodCopy, 5);
+	
+		
+	/*-------------------------------------------RECEIVE LOOP--------------------------------*/
+	while (bytesTotal <= length){
+		if (bytesIN = recv(sockFD, inBuf, 512, 0 ) < 0){
+			printf("nothing was received\n");
+			sleep(1);
+		}
+		else{
+			bytesIN = strlen(inBuf);
+			bytesTotal += bytesIN;
+			//printf("%s",inBuf);
+			x +=1;
+			//printf("bytesIN:%d\n", bytesIN);
+			//printf("%d/%d\n", bytesTotal, length);
+			if (i == 0){
+				sprintf(gotten, inBuf);
+				i += 1;
+			}
+			else {
+				sprintf(gotten+bytesIN, inBuf);
+				
+			}
+		}
+		if(bytesTotal >= length)
+				break;
+	}
+	
+	printf("%s", gotten);
+	free(inBuf);
+	free(sizeFirst);
+	
+
+
+}
+
+
+void doStuff(int sockFD, char *plain, char*key){
+	
+	
+	helloMSG(sockFD);
+	
+	openTextFile(sockFD, plain);
+	openTextFile(sockFD, key);
+	/*Check if the key is bigger than the text*/
+	keyCheck(sockFD);
+	
+	getCipher(sockFD);
+	
+	
 	
 }
 /*-------------------------------------OPEN A TEXT FILE----------------------------*/
@@ -83,12 +196,16 @@ void doStuff(int sockFD){
 /*getting help with my loop: http://stackoverflow.com/questions/5594042/c-send-file-to-socket*/
 openTextFile(int sockFD, char* myFile){
 	FILE *textFile;
-	long lSize;
+	int lSize;
 	char *contents;
-	char *sizeMatters;
+	char *sizeMatters =(char*) malloc(512);
 	int total = 0;
 	int sizeSent = 0;
 	size_t bytesRead;
+	char * goodToGo = (char*) malloc(512);
+	int gtg;
+	memset(&sizeMatters[0], 0, 512);
+	memset(&goodToGo[0], 0, 512);
 	
 	textFile = fopen(myFile, "rb");
 	
@@ -98,61 +215,56 @@ openTextFile(int sockFD, char* myFile){
 	rewind(textFile);
 	
 	/*allocate memory*/
-	contents = (char*) malloc (sizeof(char)*lSize);
+	contents = (char*) malloc(sizeof(char)*lSize);
+	memset(&contents[0], 0, sizeof(char)*lSize);
 	if (contents == NULL){
 		perror("Memory Error Reading text file:");
 	}
 	
-	sprintf(sizeMatters, "%d", lSize);
 	/*send size first*/
-	send(sockFD, sizeMatters, 512, 0);
-	incoming(sockFD);
-	//printf("lSize: %d\n", lSize);
-	/*Copy file into contents*/
+	sprintf(sizeMatters, "%d", lSize);
+	outgoing(sockFD, sizeMatters, 512);
 	
-	while ( (bytesRead = fread(contents, 1, 512, textFile)) > 0) {
-			sizeSent = send(sockFD, contents, strlen(contents)+1, 0);
-			//printf("%s", contents);
-			total += sizeSent;
-			//printf("total:%d\n bytesRead:%d\n", total, bytesRead);
-			if (total >= lSize){
-				break;
-			}
-			
-			
+	goodToGo = incoming(sockFD);
+	gtg = atoi(goodToGo);
+	if (gtg != 1111){
+		printf("something went wrong");
+		exit(1);
 	}
-	incoming(sockFD);
-	incoming(sockFD);
+	
+	/*Copy file into contents*/
+	while ( (bytesRead = fread(contents, 1, 512, textFile)) > 0) {
+		sizeSent = send(sockFD, contents, strlen(contents)+1, 0);
+		//printf("GOOD SEND\n");
+		//printf("%s", contents);
+		total += sizeSent;
+		//printf("total:%d\n bytesRead:%d\n", total, bytesRead);
+		if (total >= lSize){
+			break;
+		}
+		
+		
+	}
+	
+	
 	fclose(textFile);
 	free(contents);
 }
-
+/*-----------------MAIN STARTS HERE----------------*/
 int main(int argc, char*argv[]){
 	argCheck(argc, argv);
 	int sockFD, portNum;
 	int rv;
-	int sizeKey, sizeText;
 	struct sockaddr_in serv_addr;
     struct hostent *server;
 	
-	/*Take the CL arguments and get their size to make sure the key is larger than the plain text size*/
-	sizeText = sizeof(argv[1]);
-	sizeKey = sizeof(argv[2]);
-	char* plainText = (char*) malloc(sizeText); ;
-	char* key = (char*) malloc(sizeKey);
-	
-	
+	char* plainText = (char*) malloc(256); ;
+	char* key = (char*) malloc(256);
+		
 	plainText = argv[1];
 	key = argv[2];
 	portNum = atoi(argv[3]);
 	sockFD = socket(AF_INET, SOCK_STREAM, 0);
-	
-	
-	printf("sizeKey:%d sizeText:%d\n", sizeKey, sizeText);
-	if (sizeText > sizeKey){
-		printf("key %s too small\n", argv[2]);
-		exit(1);
-	}
 	
 	server = gethostbyname("localhost");
 	
@@ -169,14 +281,11 @@ int main(int argc, char*argv[]){
 		perror("ERROR connecting");
 	}
 	
-	openTextFile(sockFD, plainText);
-	openTextFile(sockFD, key);
+	doStuff(sockFD, plainText, key);
+	
 	close(sockFD);
 	return 0;
-	
-	
-	
-//return 0;
+
 }
 
 
