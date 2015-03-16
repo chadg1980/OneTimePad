@@ -34,29 +34,29 @@ void error(const char *msg)
 /*-------------------------------------SEND-------------------------*/
 void outgoing(int sockFD, char* message, int size ){
 	
-	char *sendBuf = (char*) malloc(1024*1024);
+	char *sendBuf = (char*) malloc(1024);
 	int outBytes = 0;
 	int len = 0;
 	memset(&sendBuf[0], 0, sizeof(sendBuf));
 	snprintf(sendBuf, sizeof(sendBuf), "%s", message);
 	outBytes = send(sockFD, sendBuf, sizeof(sendBuf), 0);
+	//printf("Sent: %s\n", sendBuf);
 	if(outBytes < 0){
 		perror("Error writing to socker");
 	}
-	//printf("GOOD SEND\n");
+	
 }
 	/*-------------------------------------------RECV------------------------------*/
 char *incoming(int sockFD){
 	
 	
-	char *recvBuf = (char*) malloc(512);
+	char *recvBuf = (char*) malloc(1024);
 	int  inBytes;
-	memset(&recvBuf[0], 0, 512);
+	memset(&recvBuf[0], 0, (1024));
 	
-	
-	inBytes = recv(sockFD, recvBuf, 512, 0);
-	if (inBytes > 0){
-		
+	inBytes = recv(sockFD, recvBuf, (1024), 0);
+	//printf("rec: %s\n", recvBuf);
+	if (inBytes >= 0){
 		//printf("%s", recvBuf);
 		//printf("Bytes: %d\n", inBytes);
 		//printf("\n");
@@ -64,32 +64,30 @@ char *incoming(int sockFD){
 	else{
 		perror("ERROR reading from this socket");
 	}
-	//printf("GOOD RECEIVE: %s\n", recvBuf);
 	return(recvBuf);
-	
 }
 
 
-int helloMSG (int sockFD){
+void helloMSG (int sockFD){
 	char hello[] = "1138";
 	int size = strlen(hello);
-	char *returnVal = (char*)malloc(512);
+	char *returnVal = (char*)malloc(1024);
 	int handShake;
+	
 	outgoing(sockFD, hello, size );
 	returnVal = incoming(sockFD);
-	
 	handShake = atoi(returnVal);
-	free(returnVal);
-	
+		
 	if (handShake == 99){
-		printf("cannot find enc_dec_d on that port\n");
+		printf("cannot find enc_dec_d on specified port\n");
+		close(sockFD);
 		exit(2);
 	}
-
+	free(returnVal);
 }
 
 void keyCheck(int sockFD){
-	char *rv =(char *) malloc(512);
+	char *rv =(char *) malloc(1024);
 	int kill;
 	rv = incoming(sockFD);
 	kill = atoi(rv);
@@ -98,9 +96,7 @@ void keyCheck(int sockFD){
 		close(sockFD);
 		exit(1);
 	}
-	
-
-}
+}	
 
 void getCipher(int sockFD){
 
@@ -109,9 +105,9 @@ void getCipher(int sockFD){
 	gotten will way for a size to allocate memory
 	sizeFirst will take the size sent by the client, which helps to know when to stop receiving data
 	*/
-	char *inBuf =  (char*) malloc(512);
+	char *inBuf =  (char*) malloc(1024);
 	char *gotten;
-	char *sizeFirst = (char*) malloc(512);
+	char *sizeFirst = (char*) malloc(1024);
 	char goodCopy[] = "1111";
 	/*
 	bytesIN couts the bytes from receive, 
@@ -123,27 +119,24 @@ void getCipher(int sockFD){
 	int bytesTotal = 0;
 	int length;
 	int i = 0;
-	int x = 0;
-	size_t gottenSize;
-	/*send ready to receive*/
+	/*send ready to receive message*/
 	outgoing(sockFD, goodCopy, 5);
 	
-	
-	/*-----------------------------------------------------RECEIVE SIZE-----------------------*/
+	/*-----------------------------------------------------RECEIVE SIZE------------------------*/
 	sizeFirst = incoming(sockFD);
-	
 	length = atoi(sizeFirst);
-	gotten = (char*) malloc(length+512);
+	printf("\n\nlength: %d\n\n", length); 
+	gotten = (char*) malloc(length+1024);
 	
-	
-	memset(&gotten[0], 0, length+512);
+	/*reset memory based on size*/
+	memset(&gotten[0], 0, length+1024);
 	/*----------------------------------------------------SEDNING REPLY--------------------------*/
 	outgoing(sockFD, goodCopy, 5);
 	
 		
-	/*-------------------------------------------RECEIVE LOOP--------------------------------*/
+	/*----------------------------------------------------RECEIVE LOOP----------------------------*/
 	while (bytesTotal <= length){
-		if (bytesIN = recv(sockFD, inBuf, 512, 0 ) < 0){
+		if (bytesIN = recv(sockFD, inBuf, 1024, 0 ) < 0){
 			printf("nothing was received\n");
 			sleep(1);
 		}
@@ -151,7 +144,7 @@ void getCipher(int sockFD){
 			bytesIN = strlen(inBuf);
 			bytesTotal += bytesIN;
 			//printf("%s",inBuf);
-			x +=1;
+			
 			//printf("bytesIN:%d\n", bytesIN);
 			//printf("%d/%d\n", bytesTotal, length);
 			if (i == 0){
@@ -159,7 +152,7 @@ void getCipher(int sockFD){
 				i += 1;
 			}
 			else {
-				sprintf(gotten+bytesIN, inBuf);
+				sprintf(gotten+strlen(gotten), inBuf);
 				
 			}
 		}
@@ -170,12 +163,9 @@ void getCipher(int sockFD){
 	printf("%s", gotten);
 	free(inBuf);
 	free(sizeFirst);
-	
+}	
 
-
-}
-
-
+/*switch between the funtion calls*/
 void doStuff(int sockFD, char *plain, char*key){
 	
 	
@@ -198,14 +188,14 @@ openTextFile(int sockFD, char* myFile){
 	FILE *textFile;
 	int lSize;
 	char *contents;
-	char *sizeMatters =(char*) malloc(512);
+	char *sizeMatters =(char*) malloc(1024);
 	int total = 0;
 	int sizeSent = 0;
 	size_t bytesRead;
-	char * goodToGo = (char*) malloc(512);
+	char * goodToGo = (char*) malloc(1024);
 	int gtg;
-	memset(&sizeMatters[0], 0, 512);
-	memset(&goodToGo[0], 0, 512);
+	memset(&sizeMatters[0], 0, 1024);
+	memset(&goodToGo[0], 0, 1024);
 	
 	textFile = fopen(myFile, "rb");
 	
@@ -224,19 +214,19 @@ openTextFile(int sockFD, char* myFile){
 	/*send size first*/
 	sprintf(sizeMatters, "%d", lSize);
 	outgoing(sockFD, sizeMatters, 512);
-	
 	goodToGo = incoming(sockFD);
 	gtg = atoi(goodToGo);
 	if (gtg != 1111){
-		printf("something went wrong");
+		printf("something went wrong\n");
 		exit(1);
 	}
 	
 	/*Copy file into contents*/
-	while ( (bytesRead = fread(contents, 1, 512, textFile)) > 0) {
+	while ( (bytesRead = fread(contents, 1, sizeof(char)*lSize, textFile)) > 0) {
 		sizeSent = send(sockFD, contents, strlen(contents)+1, 0);
 		//printf("GOOD SEND\n");
-		//printf("%s", contents);
+		//printf("%s\nsent:%d", contents, sizeSent);
+		//printf("sent:%d", sizeSent);
 		total += sizeSent;
 		//printf("total:%d\n bytesRead:%d\n", total, bytesRead);
 		if (total >= lSize){
@@ -258,8 +248,8 @@ int main(int argc, char*argv[]){
 	struct sockaddr_in serv_addr;
     struct hostent *server;
 	
-	char* plainText = (char*) malloc(256); ;
-	char* key = (char*) malloc(256);
+	char* plainText = (char*) malloc(512); ;
+	char* key = (char*) malloc(512);
 		
 	plainText = argv[1];
 	key = argv[2];
