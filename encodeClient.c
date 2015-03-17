@@ -14,11 +14,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h> 
-#include <sys/wait.h>
+
 
 void argCheck(int argc, char* argv[]){
 	
-	if (argc < 3){
+	if (argc <= 3){
 		fprintf(stderr," usage %s [plaintext][key][portNumber]\n", argv[0]);
 		exit(2);
 	}
@@ -93,14 +93,18 @@ void keyCheck(int sockFD){
 	kill = atoi(rv);
 	if(kill == 99){
 		printf("key too short\n");
+		free(rv);
 		close(sockFD);
 		exit(1);
 	}
 	else if(kill == 9999){
 		printf("bad characters in text\n");
+		free(rv);
 		close(sockFD);
 		exit(1);
 	}
+	free(rv);
+	
 }	
 
 void getCipher(int sockFD){
@@ -130,6 +134,7 @@ void getCipher(int sockFD){
 	/*-----------------------------------------------------RECEIVE SIZE------------------------*/
 	sizeFirst = incoming(sockFD);
 	length = atoi(sizeFirst);
+	//printf("\n\nlength: %d\n\n", length); 
 	gotten = (char*) malloc(length+1024);
 	
 	/*reset memory based on size*/
@@ -218,6 +223,7 @@ openTextFile(int sockFD, char* myFile){
 	/*send size first*/
 	sprintf(sizeMatters, "%d", lSize);
 	outgoing(sockFD, sizeMatters, 512);
+	
 	goodToGo = incoming(sockFD);
 	gtg = atoi(goodToGo);
 	if (gtg != 1111){

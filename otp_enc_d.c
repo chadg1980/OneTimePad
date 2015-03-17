@@ -86,10 +86,10 @@ char *incomingText(int nyFD, char *returnText, int length ){
 	which helps to know when to stop receiving data
 	*/
 	char *inBuf =  (char*) malloc(1024);
-	//char *sizeFirst = (char*) malloc(1024);
+	
 	char goodCopy[] = "1111";
 	memset(&inBuf[0], 0, 1024);
-	//memset(&sizeFirst[0], 0, 1024);
+	
 	/*
 	bytesIN couts the bytes from receive, 
 	bytesTotal keeps a running total
@@ -98,7 +98,6 @@ char *incomingText(int nyFD, char *returnText, int length ){
 	*/
 	size_t bytesIN;
 	int bytesTotal = 0;
-	//int length=0;
 	int i = 0;
 		
 	
@@ -291,7 +290,7 @@ int keyCheck(int nyFD, char* text, char *key){
 		return 3;
 	}
 }
-
+/*send the cipher message back to who sent us the plain text*/
 sendCipher(int nyFD, char *cipher){
 	char *goodToGo = (char *)malloc(1024);
 	char *size = (char*) malloc(1024);

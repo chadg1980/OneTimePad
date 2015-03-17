@@ -37,12 +37,12 @@ void outgoing(int nyFD, char *msgOut){
 	int len = 0;
 	memset(&outgone[0], 0, sizeof(outgone));
 	
-	snprintf(outgone, strlen(msgOut), "%s", msgOut);
+	snprintf(outgone, sizeof(msgOut), "%s", msgOut);
 	len = strlen(outgone);
 	
 	bytesOut = send(nyFD,outgone, len+1, 0);
 	//printf("Sent bytes %d\n", bytesOut); 
-	  
+	  printf("sent: %s\n", outgone);
     if (bytesOut < 0){
 		perror("ERROR writing to socket");
 	}
@@ -59,9 +59,9 @@ void outgoing(int nyFD, char *msgOut){
 	inBytes = recv(sockFD, recvBuf, 1024, 0);
 	if (inBytes > 0){
 		
-		//printf("%s", recvBuf);
+		printf("rec: %s", recvBuf);
 		//printf("Bytes: %d\n", inBytes);
-		//printf("\n");
+		printf("\n");
 	}
 	else{
 		perror("ERROR reading from this socket");
@@ -83,10 +83,10 @@ char *incomingCipher(int nyFD, char *returnCipher, int length){
 	which helps to know when to stop receiving data
 	*/
 	char *inBuf =  (char*) malloc(1024);
-	//char *sizeFirst = (char*) malloc(1024);
+	
 	char goodCopy[] = "1111";
 	memset(&inBuf[0], 0, 1024);
-	//memset(&sizeFirst[0], 0, 1024);
+	
 	/*
 	bytesIN couts the bytes from receive, 
 	bytesTotal keeps a running total
@@ -102,7 +102,7 @@ char *incomingCipher(int nyFD, char *returnCipher, int length){
 	/*----------------------------------------------------SEDNING REPLY--------------------------*/
 	outgoing(nyFD, goodCopy);
 	
-		
+	
 	/*-------------------------------------------RECEIVE LOOP--------------------------------*/
 	while (bytesTotal <= length){
 		if (bytesIN = recv(nyFD, inBuf, 1024, 0 ) < 0){
@@ -113,6 +113,7 @@ char *incomingCipher(int nyFD, char *returnCipher, int length){
 			bytesIN = strlen(inBuf);
 			bytesTotal += bytesIN;
 			//printf("%s",inBuf);
+			printf("incoming cipher: RECV LOOP\n");
 			//printf("\nbytesIN:%d\n", bytesIN);
 			//printf("pass: %d\n total: %d/Size%d\n",i,  bytesTotal, length);
 			if (i == 0){
@@ -146,7 +147,7 @@ char *incomingKey(int nyFD, char *returnKey, int length ){
 	*/
 	char *inBuf =  (char*) malloc(1024);
 	
-	//char *sizeFirst = (char*) malloc(512);
+	
 	char goodCopy[] = "1111";
 	/*
 	bytesIN couts the bytes from receive, 
@@ -156,7 +157,7 @@ char *incomingKey(int nyFD, char *returnKey, int length ){
 	*/
 	size_t bytesIN;
 	int bytesTotal = 0;
-	//int length;
+	
 	int i = 0;
 		
 	/*----------------------------------------------------SEDNING REPLY--------------------------*/
@@ -172,6 +173,7 @@ char *incomingKey(int nyFD, char *returnKey, int length ){
 		else{
 			bytesIN = strlen(inBuf);
 			bytesTotal += bytesIN;
+			printf("incoming key rec loop\n");
 			//printf("%s",inBuf);
 			//printf("\nbytesIN:%d\n", bytesIN);
 			//printf("pass: %d\n total: %d/Size%d\n",i,  bytesTotal, length);
@@ -202,7 +204,7 @@ char *incomingKey(int nyFD, char *returnKey, int length ){
 char *decode(char *cipherText, char* key, char *plainText){
 	int i;
 	int j = 0;
-	//char *plainText = (char *) malloc(1024*1024);
+	
 	printf("cipherText:\n%s", cipherText);
 	while(cipherText[j] != 10){
 		/*remove the 65 we added to make it printable*/
@@ -235,7 +237,9 @@ int verify(int nyFD){
 	char kill[] = "99";
 	char good[] = "31415";
 	int secret;
+	
 	recv(nyFD, handshake, 512, 0 );
+	printf("handshake recv: %s\n", handshake);
 	secret = atoi(handshake);
 	if(secret != 333){
 		outgoing(nyFD, kill);
@@ -256,13 +260,16 @@ sendPlain(int nyFD, char *plain){
 	memset(&size[0], 0, 1024);
 	
 	/*receive G2G message*/
+	printf("SendPlain good to go receive\n");
 	goodToGo = receiver(nyFD);
 	
 	/*send file size*/
+	printf("sendPlain file size sent\n");
 	sprintf(size, "%d", len);
 	outgoing(nyFD, size);
 	
 	/*receive G2G message*/
+	printf("send plain:good to go 2\n");
 	goodToGo = receiver(nyFD);
 	
 	/*send loop*/
@@ -270,7 +277,7 @@ sendPlain(int nyFD, char *plain){
 		sSent = send(nyFD, plain, 1024, 0);
 		//printf("GOOD SEND\n");
 		total += sSent;
-		//printf("total:%d\n sent:%d\n", total, sSent);
+		printf("total:%d\n sent:%d\n", total, sSent);
 		if (total >= len){
 			break;
 		}
@@ -284,7 +291,7 @@ getCipherSize(nyFD){
 	char *cipherSizeFirst = (malloc(1024));
 	int length;
 	cipherSizeFirst = receiver(nyFD);
-	//printf("Size:%s\n", sizeFirst);
+	//printf("Size:%s\n", cipherSizeFirst);
 	
 	length = atoi(cipherSizeFirst);
 		
@@ -307,7 +314,7 @@ getKeySize(nyFD){
 
 
 void doStuff(nyFD){
-	
+	printf("Doing Stuff!\n");
 	char *cipher;
 	char *keyCode;
 	char *plain;
@@ -331,29 +338,29 @@ void doStuff(nyFD){
 	cipher = (char *) malloc(cipherSize + 1024);
 	memset(&cipher[0], 0, cipherSize +1024);
 	
-	cipherSize = getCipherSize(nyFD);
 	plain =  (char*) malloc(cipherSize + 1024); 
 	memset(&plain[0], 0, cipherSize+1024);
 	
 	cipher = incomingCipher(nyFD, cipher, cipherSize);
-	
+	fflush(stdout);					
 	keyCodeSize = getKeySize(nyFD);
 	keyCode = (char*)malloc(keyCodeSize+1024);
 	keyCode = incomingKey(nyFD, keyCode, keyCodeSize);
 	
 	plain = decode(cipher, keyCode, plain);
-	
+	fflush(stdout);
 	sendPlain(nyFD, plain);
 	
 	free(plain);
 	free(keyCode);
 	free(cipher);
 	close(nyFD);
-	exit(0);
+	
 	 
 }
 int main(int argc, char *argv[])
 {
+	
 	argCheck(argc);
 	int sockfd, newSockFD, portNum;
     socklen_t cliLen;
@@ -387,7 +394,7 @@ int main(int argc, char *argv[])
      newSockFD = accept(sockfd, (struct sockaddr *) &cli_addr, &cliLen);
      if (newSockFD < 0) 
           error("ERROR on accept");
-	
+	printf("connected!\n");
      doStuff(newSockFD);
      close(newSockFD);
      close(sockfd);
