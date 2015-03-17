@@ -14,7 +14,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h> 
-
+#include <sys/wait.h>
 
 void argCheck(int argc, char* argv[]){
 	
@@ -88,11 +88,16 @@ void helloMSG (int sockFD){
 
 void keyCheck(int sockFD){
 	char *rv =(char *) malloc(1024);
-	int kill;
+	int kill = 0;
 	rv = incoming(sockFD);
 	kill = atoi(rv);
 	if(kill == 99){
 		printf("key too short\n");
+		close(sockFD);
+		exit(1);
+	}
+	else if(kill == 9999){
+		printf("bad characters in text\n");
 		close(sockFD);
 		exit(1);
 	}
@@ -125,7 +130,6 @@ void getCipher(int sockFD){
 	/*-----------------------------------------------------RECEIVE SIZE------------------------*/
 	sizeFirst = incoming(sockFD);
 	length = atoi(sizeFirst);
-	printf("\n\nlength: %d\n\n", length); 
 	gotten = (char*) malloc(length+1024);
 	
 	/*reset memory based on size*/

@@ -15,6 +15,8 @@ A simple server in the internet domain using TCP
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/wait.h>
+#include <signal.h>
 
 void error(const char *msg)
 {
@@ -115,11 +117,10 @@ char *incomingText(int nyFD, char *returnText, int length ){
 			bytesTotal += bytesIN;
 			//printf("%s",inBuf);
 			//printf("\nbytesIN:%d\n", bytesIN);
-			printf("pass: %d\n total: %d/Size%d\n",i,  bytesTotal, length);
+			//printf("pass: %d\n total: %d/Size%d\n",i,  bytesTotal, length);
 			if (i == 0){
 				sprintf(returnText, inBuf);
 				//printf("%d's recv:\n%s",i, returnText);
-				
 				i += 1;
 			}
 			else {
@@ -195,7 +196,6 @@ char *incomingKey(int nyFD, char *returnKey, int length ){
 	}
 		
 	free(inBuf);
-	//free(sizeFirst);
 	return returnKey;
 }
 /*This function will create the cipher text and return the cipher text file*/
@@ -203,7 +203,7 @@ char *encode(char *text, char *key, char *cipher ){
 	int i = (strlen(text)-1);
 	int k = 0;
 	int j;
-	printf("ENCODE: text len:%d\n", i);
+	//printf("ENCODE: text len:%d\n", i);
 	//printf("text\tkey\tcipher\n");
 	for (k; k < i; k++){
 		
@@ -217,14 +217,10 @@ char *encode(char *text, char *key, char *cipher ){
 			cipher[k] = 91;
 		}
 		else{
-			printf("error Message\n");
-			printf("send a kill signal\n");
+			printf("This should have been caught already\n");
+			
 		}
-		/*
-		printf("%d\t", (text[k]-65));
-		printf("%d\t", (key[k]-65));
-		printf("%d\n", cipher[k]);
-		*/
+		
 		/*add 65 for ASCII printable letters*/
 		if(cipher[k] != 91)
 			cipher[k] = cipher[k] + 65;
@@ -233,7 +229,6 @@ char *encode(char *text, char *key, char *cipher ){
 	
 	//printf("ENCODE CIPHER:\n%s\n", cipher);
 	return cipher;
-
 
 
 }
@@ -255,19 +250,40 @@ int verify(int nyFD){
 	}
 }
 
-/*This function makes sure the key is longer than the text, sends kill signal if not. */
+/*This function makes sure the key is longer than the text, 
+	and checks for no bad characters
+	sends kill signal if there is an issue. */
 int keyCheck(int nyFD, char* text, char *key){
 	int lengthFirst = strlen(text);
 	int lengthSecond = strlen(key);
-	char kill[] = "99";
+	char toShort[] = "99";
+	char badChar[] = "9999";
 	char good[] = "2249";
 	//printf("text: %s\n len%d\n", text, lengthFirst);
 	//printf("key: %s\n len%d\n", key, lengthSecond);
 	
-	
+	int i = (strlen(text)-1);
+	int k = 0;
+	int j;
+	//printf("ENCODE: text len:%d\n", i);
+	//printf("text\tkey\tcipher\n");
+	for (k; k < i; k++){
+		
+		/*only dealing with the capital letters ASCII*/
+		if( (text[k]>=65) && (text[k] <= 90) ){
+			continue;
+		}/*32 is the space*/
+		else if( text[k] == 32){
+			continue;
+		}
+		else{
+			outgoing(nyFD, badChar);
+			return 1;
+		}
+	}
 	if(lengthFirst > lengthSecond){
 		//printf("Key is not long enought\n");
-		outgoing(nyFD, kill);
+		outgoing(nyFD, toShort);
 		return 1;
 	}
 	else{
@@ -300,7 +316,7 @@ sendCipher(int nyFD, char *cipher){
 		sSent = send(nyFD, cipher, 1024, 0);
 		//printf("GOOD SEND\n");
 		total += sSent;
-		printf("total:%d\n sent:%d\n", total, sSent);
+		//printf("total:%d\n sent:%d\n", total, sSent);
 		if (total >= len){
 			break;
 		}
@@ -330,7 +346,6 @@ getKeySize(nyFD){
 	
 	length = atoi(keysizeFirst);
 	
-	
 	free(keysizeFirst);
 	return length;
 
@@ -346,21 +361,23 @@ void switchBoard(int nyFD){
 	
 	int killed = 3;
 	int i;
-	
 	killed = verify(nyFD);
 	fflush(stdout);
 	if (killed == 1){
 		free(plain);
 		free(keyCode);
 		free(cipher);
-		return;	
+		/*child process should exit, not the parent process*/
+		exit(1);	
 	
 	}
 	plainSize = getTextSize(nyFD);
 	plain =  (char*) malloc(plainSize + 1024); 
 	memset(&plain[0], 0, plainSize+1024);
+	
 	cipher =  (char*) malloc(plainSize + 1024); 
 	memset(&cipher[0], 0, plainSize+1024);
+	
 	plain = incomingText(nyFD, plain, plainSize);
 	
 	keyCodeSize = getKeySize(nyFD);
@@ -374,17 +391,19 @@ void switchBoard(int nyFD){
 		free(plain);
 		free(keyCode);
 		free(cipher);
-		return;	
+		/*child process should exit, not the parent process*/
+		exit(1);	
 	
 	}
 	
-	
 	cipher = encode(plain, keyCode, cipher);
+	
 	sendCipher(nyFD, cipher);
 	
 	free(plain);
 	free(keyCode);
 	free(cipher);
+	exit(0);
 	
 
 }
@@ -397,13 +416,25 @@ int main(int argc, char *argv[]){
     struct sockaddr_in serv_addr, cli_addr;
 	int yes = 1;
 	int notKilled = 1;
+	pid_t anyPID = 0;
+	pid_t spawnPID = -5;
+	int status;
+   
+   /*Signal Area*/
+   struct sigaction parent_act;
+	parent_act.sa_handler = SIG_IGN;
+	parent_act.sa_flags = 0;
+	sigfillset(&(parent_act.sa_mask));
+	sigaction(SIGINT, &parent_act, NULL);
+	sigaction(SIGTSTP, &parent_act, NULL);
+	/*END SIGNAL AREA*/
+   
    /*getting a socket. Sock_stream means TCP*/
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
      
 	 if (sockfd < 0) 
         error("ERROR opening socket");
-     
-	
+    
 	memset(&serv_addr, 0, sizeof(serv_addr));
     portNum = atoi(argv[1]);
     serv_addr.sin_family = AF_INET;
@@ -418,6 +449,8 @@ int main(int argc, char *argv[]){
 	so I pulled this line of code from Beej's guide hoping it would fix it up.*/
     setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
     while(notKilled == 1){
+		
+		anyPID = waitpid(-1, &status, WNOHANG) ;
 		listen(sockfd, 10);
 		 
 		fflush(stdout);
@@ -426,11 +459,34 @@ int main(int argc, char *argv[]){
 		if (newSockFD < 0) 
 			  error("ERROR on accept");
 		
-		switchBoard(newSockFD);
+		spawnPID = fork();
+		
+		if (spawnPID == 0){
+			//printf("this is the child process\n");
+			/*Child Signal Area*/
+			struct sigaction child_act;
+			child_act.sa_handler = SIG_DFL;
+			child_act.sa_flags = 0;
+			sigfillset(&(child_act.sa_mask));
+			sigaction(SIGINT, &child_act, NULL);
+			/*END SIGNAL AREA*/
+			
+			
+			close(sockfd);
+			switchBoard(newSockFD);
+		}
+		else if (spawnPID == -1){
+			printf("Fork Failed\n");
+			exit(1);
+		}
+		else{
+			close(newSockFD);
+		}
+		
 		
 	}
     close(newSockFD);
-    close(sockfd);
+    //close(sockfd);
     return 0; 
 }
 

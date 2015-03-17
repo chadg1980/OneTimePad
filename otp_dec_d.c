@@ -31,18 +31,20 @@ void argCheck(int argCount){
 }
 /*------------------------------SEND-------------------------------------*/
 void outgoing(int nyFD, char *msgOut){
-	char *outgone = (char*) malloc(500);
+	char *outgone = (char*) malloc(1024);
 	
 	int bytesOut = 0;
-	
+	int len = 0;
 	memset(&outgone[0], 0, sizeof(outgone));
 	
 	snprintf(outgone, strlen(msgOut), "%s", msgOut);
-	bytesOut = send(nyFD,outgone,strlen(outgone), 0);
-	printf("Sent bytes %d\n", bytesOut); 
+	len = strlen(outgone);
+	
+	bytesOut = send(nyFD,outgone, len+1, 0);
+	//printf("Sent bytes %d\n", bytesOut); 
 	  
     if (bytesOut < 0){
-		error("ERROR writing to socket");
+		perror("ERROR writing to socket");
 	}
 
 	free(outgone);
