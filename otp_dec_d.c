@@ -74,7 +74,7 @@ void outgoing(int nyFD, char *msgOut){
  }
  
  /*------------------------------------------Incoming Cipher File---------------------------*/
-char *incomingCipher(int nyFD, char returnCipher, int length){
+char *incomingCipher(int nyFD, char *returnCipher, int length){
 	
 	/*
 	inBuf will take chunks, and copy that to returnText
@@ -198,15 +198,15 @@ char *incomingKey(int nyFD, char *returnKey, int length ){
 }
 
 /*This function will take the cipher text and key and return plain text*/
-/*
-void decode(char *cipherText, char* key){
+
+char *decode(char *cipherText, char* key, char *plainText){
 	int i;
 	int j = 0;
-	char *plainText = (char *) malloc(1024*1024);
+	//char *plainText = (char *) malloc(1024*1024);
 	printf("cipherText:\n%s", cipherText);
 	while(cipherText[j] != 10){
 		/*remove the 65 we added to make it printable*/
-		/*if(cipherText[j] != 91){
+		if(cipherText[j] != 91){
 			cipherText[j] = cipherText[j] - 65;
 			plainText[j] = (cipherText[j] - ( key[j] - 65) ) ;
 		
@@ -226,8 +226,9 @@ void decode(char *cipherText, char* key){
 	}
 	plainText[j] = 10;
 	printf("%s", plainText);
+	return plainText;
 }
-*/
+
 /*This function will verify the sender as a decoder or send a kill signal*/
 int verify(int nyFD){
 	char *handshake = (char*) malloc(512);
@@ -266,7 +267,7 @@ sendPlain(int nyFD, char *plain){
 	
 	/*send loop*/
 	while (1) {
-		sSent = send(nyFD, cipher, 1024, 0);
+		sSent = send(nyFD, plain, 1024, 0);
 		//printf("GOOD SEND\n");
 		total += sSent;
 		//printf("total:%d\n sent:%d\n", total, sSent);
@@ -282,7 +283,7 @@ sendPlain(int nyFD, char *plain){
 getCipherSize(nyFD){
 	char *cipherSizeFirst = (malloc(1024));
 	int length;
-	textsizeFirst = receiver(nyFD);
+	cipherSizeFirst = receiver(nyFD);
 	//printf("Size:%s\n", sizeFirst);
 	
 	length = atoi(cipherSizeFirst);
@@ -316,11 +317,40 @@ void doStuff(nyFD){
 	
 	int killed = 3;
 		
-	back = incoming(nyFD);
-	outgoing(nyFD, back);
+	killed = verify(nyFD);
+	if (killed == 1){
+		free(plain);
+		free(keyCode);
+		free(cipher);
+		/*child process should exit, not the parent process*/
+		exit(1);	
 	
+	}
 	
-
+	cipherSize = getCipherSize(nyFD);
+	cipher = (char *) malloc(cipherSize + 1024);
+	memset(&cipher[0], 0, cipherSize +1024);
+	
+	cipherSize = getCipherSize(nyFD);
+	plain =  (char*) malloc(cipherSize + 1024); 
+	memset(&plain[0], 0, cipherSize+1024);
+	
+	cipher = incomingCipher(nyFD, cipher, cipherSize);
+	
+	keyCodeSize = getKeySize(nyFD);
+	keyCode = (char*)malloc(keyCodeSize+1024);
+	keyCode = incomingKey(nyFD, keyCode, keyCodeSize);
+	
+	plain = decode(cipher, keyCode, plain);
+	
+	sendPlain(nyFD, plain);
+	
+	free(plain);
+	free(keyCode);
+	free(cipher);
+	close(nyFD);
+	exit(0);
+	 
 }
 int main(int argc, char *argv[])
 {

@@ -403,6 +403,7 @@ void switchBoard(int nyFD){
 	free(plain);
 	free(keyCode);
 	free(cipher);
+	close(nyFD);
 	exit(0);
 	
 
