@@ -49,54 +49,155 @@ void outgoing(int nyFD, char *msgOut){
 
 	free(outgone);
 }
+
  /*------------------------------------RCVD------------------*/
-//char *incoming(int nyFD, char *gotten){
-char *incoming(int nyFD){
-	
-	char *inBuf =  (char*) malloc(512);
-	char *gotten =  (char*) malloc(512);
-	//char inBuf[512];
-	int bytesIN = 0;
-	int bytesTotal = 0;
-	int length;
+ char *receiver(int sockFD){
+	char *recvBuf = (char*) malloc(1024);
+	int  inBytes;
+	memset(&recvBuf[0], 0, 1024);
 		
-	memset(&gotten[0], 0, 512);
-	
-	if (bytesIN = recv(nyFD, gotten, 512, 0 ) < 0){
-		printf("nothing was received\n");
-		sleep(1);
+	inBytes = recv(sockFD, recvBuf, 1024, 0);
+	if (inBytes > 0){
+		
+		//printf("%s", recvBuf);
+		//printf("Bytes: %d\n", inBytes);
+		//printf("\n");
 	}
 	else{
-		bytesTotal += bytesIN;
-			printf("%s", gotten);
-			printf("\n");
-			
+		perror("ERROR reading from this socket");
 	}
-    /*
-	printf("I got %d bytes\n", bytesIN);
-	length = strlen(gotten);
-	printf("gotten is: %s", gotten);
-	printf(" length of %d\n", length);
-	*/
+	//printf("GOOD RECEIVE\n");
+	return(recvBuf);
+ 
+ 
+ 
+ }
+ 
+ /*------------------------------------------Incoming Cipher File---------------------------*/
+char *incomingCipher(int nyFD, char returnCipher, int length){
+	
 	/*
-	 if (bytesTotal > 0){
+	inBuf will take chunks, and copy that to returnText
+	returnText will  for a size to allocate memory
+	sizeFirst will take the size sent by the client, 
+	which helps to know when to stop receiving data
+	*/
+	char *inBuf =  (char*) malloc(1024);
+	//char *sizeFirst = (char*) malloc(1024);
+	char goodCopy[] = "1111";
+	memset(&inBuf[0], 0, 1024);
+	//memset(&sizeFirst[0], 0, 1024);
+	/*
+	bytesIN couts the bytes from receive, 
+	bytesTotal keeps a running total
+	length is the int of the char* sizeFirst
+	i is a flag to keep track if it is the first pass through or not for copying data
+	*/
+	size_t bytesIN;
+	int bytesTotal = 0;
+	//int length=0;
+	int i = 0;
 		
-		 snprintf(inBuf, bytesIN+1, "%s", gotten);
-		 printf("Here is the message:\n ");
-		 
-		 printf("%s", inBuf);
-		 printf("\n");
-		 fflush(stdout);
-	 
-	 }
-	else{
-	 perror("ERROR reading from socket");
-     }
-	 */
-	 
-	 return gotten;
+	
+	/*----------------------------------------------------SEDNING REPLY--------------------------*/
+	outgoing(nyFD, goodCopy);
+	
+		
+	/*-------------------------------------------RECEIVE LOOP--------------------------------*/
+	while (bytesTotal <= length){
+		if (bytesIN = recv(nyFD, inBuf, 1024, 0 ) < 0){
+			printf("nothing was received\n");
+			sleep(1);
+		}
+		else{
+			bytesIN = strlen(inBuf);
+			bytesTotal += bytesIN;
+			//printf("%s",inBuf);
+			//printf("\nbytesIN:%d\n", bytesIN);
+			//printf("pass: %d\n total: %d/Size%d\n",i,  bytesTotal, length);
+			if (i == 0){
+				sprintf(returnCipher, inBuf);
+				//printf("%d's recv:\n%s",i, returnText);
+				i += 1;
+			}
+			else {
+				sprintf(returnCipher+strlen(returnCipher), inBuf);
+				//printf("%d's recv:\n%s",i, returnText);
+				i+=1;
+				
+			}
+		}
+		if(bytesTotal >= length)
+				break;
+		
+	}
+		
+	free(inBuf);
+	return returnCipher;
 	 
 }
+
+char *incomingKey(int nyFD, char *returnKey, int length ){
+	
+	/*
+	inBuf will take chunks, and copy that to returnKey
+	returnKey will  for a size to allocate memory
+	sizeFirst will take the size sent by the client, which helps to know when to stop receiving data
+	*/
+	char *inBuf =  (char*) malloc(1024);
+	
+	//char *sizeFirst = (char*) malloc(512);
+	char goodCopy[] = "1111";
+	/*
+	bytesIN couts the bytes from receive, 
+	bytesTotal keeps a running total
+	length is the int of the char* sizeFirst
+	i is a flag to keep track if it is the first pass through or not for copying data
+	*/
+	size_t bytesIN;
+	int bytesTotal = 0;
+	//int length;
+	int i = 0;
+		
+	/*----------------------------------------------------SEDNING REPLY--------------------------*/
+	outgoing(nyFD, goodCopy);
+	
+			
+	/*-------------------------------------------RECEIVE LOOP--------------------------------*/
+	while (bytesTotal <= length){
+		if (bytesIN = recv(nyFD, inBuf, (1024), 0 ) < 0){
+			printf("nothing was received\n");
+			sleep(1);
+		}
+		else{
+			bytesIN = strlen(inBuf);
+			bytesTotal += bytesIN;
+			//printf("%s",inBuf);
+			//printf("\nbytesIN:%d\n", bytesIN);
+			//printf("pass: %d\n total: %d/Size%d\n",i,  bytesTotal, length);
+			if (i == 0){
+				sprintf(returnKey, inBuf);
+				//printf("%d's recv:\n%s",i, returnKey);
+				
+				i += 1;
+			}
+			else {
+				sprintf(returnKey+strlen(returnKey), inBuf);
+				//printf("%d's recv:\n%s",i, returnKey);
+				i+=1;
+				
+			}
+		}
+		if(bytesTotal >= length)
+				break;
+		
+	}
+		
+	free(inBuf);
+	return returnKey;
+}
+
+/*This function will take the cipher text and key and return plain text*/
 /*
 void decode(char *cipherText, char* key){
 	int i;
@@ -127,18 +228,96 @@ void decode(char *cipherText, char* key){
 	printf("%s", plainText);
 }
 */
-void doStuff(nyFD){
-	//char *gotten = (char*) malloc(500);
-	//char gotten[512];
-	char *back = (char*) malloc(500);
-	int length;
+/*This function will verify the sender as a decoder or send a kill signal*/
+int verify(int nyFD){
+	char *handshake = (char*) malloc(512);
+	char kill[] = "99";
+	char good[] = "31415";
+	int secret;
+	recv(nyFD, handshake, 512, 0 );
+	secret = atoi(handshake);
+	if(secret != 333){
+		outgoing(nyFD, kill);
+		return 1;
+	}
+	else{
+		outgoing(nyFD, good);
+		return 3;
+	}
+}
+sendPlain(int nyFD, char *plain){
+	char *goodToGo = (char *)malloc(1024);
+	char *size = (char*) malloc(1024);
+	int len = strlen(plain);
+	size_t sSent;
+	int total = 0;
+	memset(&goodToGo[0], 0, 1024);
+	memset(&size[0], 0, 1024);
 	
+	/*receive G2G message*/
+	goodToGo = receiver(nyFD);
+	
+	/*send file size*/
+	sprintf(size, "%d", len);
+	outgoing(nyFD, size);
+	
+	/*receive G2G message*/
+	goodToGo = receiver(nyFD);
+	
+	/*send loop*/
+	while (1) {
+		sSent = send(nyFD, cipher, 1024, 0);
+		//printf("GOOD SEND\n");
+		total += sSent;
+		//printf("total:%d\n sent:%d\n", total, sSent);
+		if (total >= len){
+			break;
+		}
+	}
+	free(goodToGo);
+	free(size);
+}	
+
+/*--------------------------------------------------get the RECEIVE SIZE-----------------------*/
+getCipherSize(nyFD){
+	char *cipherSizeFirst = (malloc(1024));
+	int length;
+	textsizeFirst = receiver(nyFD);
+	//printf("Size:%s\n", sizeFirst);
+	
+	length = atoi(cipherSizeFirst);
 		
-		//back = incoming(nyFD, gotten);
-		back = incoming(nyFD);
+	free(cipherSizeFirst);
+	return length;
+
+}
+getKeySize(nyFD){
+	char *keysizeFirst = (malloc(1024));
+	int length;
+	keysizeFirst = receiver(nyFD);
+	//printf("Size:%s\n", sizeFirst);
+	
+	length = atoi(keysizeFirst);
+	
+	free(keysizeFirst);
+	return length;
+
+}
+
+
+void doStuff(nyFD){
+	
+	char *cipher;
+	char *keyCode;
+	char *plain;
+	
+	int cipherSize;
+	int keyCodeSize;
+	
+	int killed = 3;
 		
-		
-		outgoing(nyFD, back);
+	back = incoming(nyFD);
+	outgoing(nyFD, back);
 	
 	
 
