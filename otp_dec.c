@@ -40,7 +40,7 @@ void outgoing(int sockFD, char* message, int size ){
 	memset(&sendBuf[0], 0, sizeof(sendBuf));
 	snprintf(sendBuf, sizeof(sendBuf), "%s", message);
 	outBytes = send(sockFD, sendBuf, sizeof(sendBuf), 0);
-	printf("Sent: %s\n", sendBuf);
+	//printf("Sent: %s\n", sendBuf);
 	if(outBytes < 0){
 		perror("Error writing to socker");
 	}
@@ -57,9 +57,9 @@ char *incoming(int sockFD){
 	inBytes = recv(sockFD, recvBuf, (1024), 0);
 	//printf("rec: %s\n", recvBuf);
 	if (inBytes >= 0){
-		printf("REC: %s", recvBuf);
+		//printf("REC: %s", recvBuf);
 		//printf("Bytes: %d\n", inBytes);
-		printf("\n");
+		
 	}
 	else{
 		perror("ERROR reading from this socket");
@@ -79,7 +79,7 @@ void helloMSG (int sockFD){
 	handShake = atoi(returnVal);
 		
 	if (handShake == 99){
-		printf("cannot find enc_dec_d on specified port\n");
+		printf("cannot find otp_dec_d on specified port\n");
 		close(sockFD);
 		exit(2);
 	}
@@ -87,14 +87,14 @@ void helloMSG (int sockFD){
 }
 
 
-void getCipher(int sockFD){
+void getPlain(int sockFD){
 
 	/*
 	inBuf will take 512 byte chunks, and copy that to gotten
 	gotten will way for a size to allocate memory
 	sizeFirst will take the size sent by the client, which helps to know when to stop receiving data
 	*/
-	char *inBuf =  (char*) malloc(1024);
+	
 	char *gotten;
 	char *sizeFirst = (char*) malloc(1024);
 	char goodCopy[] = "1111";
@@ -105,7 +105,7 @@ void getCipher(int sockFD){
 	length is the int of the char* sizeFirst
 	i is a flag to keep track if it is the first pass through or not for copying data
 	*/
-	int bytesIN;
+	size_t bytesIN;
 	int bytesTotal = 0;
 	int length;
 	int i = 0;
@@ -119,38 +119,21 @@ void getCipher(int sockFD){
 	
 	/*reset memory based on size*/
 	memset(&gotten[0], 0, length+1024);
+	
 	/*----------------------------------------------------SEDNING REPLY--------------------------*/
 	outgoing(sockFD, goodCopy, 5);
 	
 		
 	/*----------------------------------------------------RECEIVE LOOP----------------------------*/
 	while (bytesTotal <= length){
-		if (bytesIN = recv(sockFD, inBuf, 1024, 0 ) < 0){
-			printf("nothing was received\n");
-			sleep(1);
-		}
-		else{
-			bytesIN = strlen(inBuf);
-			bytesTotal += bytesIN;
-			//printf("RECV LOOP: %s\n",inBuf);
-			printf("get cipher: RECV LOOP\n");
-			//printf("bytesIN:%d\n", bytesIN);
-			//printf("%d/%d\n", bytesTotal, length);
-			if (i == 0){
-				sprintf(gotten, inBuf);
-				i += 1;
-			}
-			else {
-				sprintf(gotten+strlen(gotten), inBuf);
-				
-			}
-		}
+		bytesIN = recv(sockFD, gotten+bytesTotal, 1024, 0 );
+			bytesTotal+= bytesIN;
 		if(bytesTotal >= length)
 				break;
 	}
 	
 	printf("%s", gotten);
-	free(inBuf);
+	
 	free(sizeFirst);
 	free(gotten);
 	
@@ -159,17 +142,15 @@ void getCipher(int sockFD){
 /*switch between the funtion calls*/
 void doStuff(int sockFD, char *cipher, char*key){
 	
-	printf("doing stuff\n");
+	
 	helloMSG(sockFD);
 	
 	openTextFile(sockFD, cipher);
-	printf("opened text one\n");
+	
 	openTextFile(sockFD, key);
-	printf("opened text two\n");
-	//rv = incoming(sockFD);
-	//printf("RV:%s\n", rv);
+	
 		
-	getCipher(sockFD);
+	getPlain(sockFD);
 	
 	
 	
@@ -220,14 +201,14 @@ openTextFile(int sockFD, char* myFile){
 	while ( (bytesRead = fread(contents, 1, sizeof(char)*lSize, textFile)) > 0) {
 		sizeSent = send(sockFD, contents, strlen(contents)+1, 0);
 		//printf("GOOD SEND\n");
-		printf("fread loop: %ssent:%d\n", contents, sizeSent);
+		//printf("fread loop: %ssent:%d\n", contents, sizeSent);
 		//printf("%s", c);
 		//printf("sent:%d", sizeSent);
 		total += sizeSent;
-		printf("total:%d/ lSize:%d\n", total, lSize);
-		if (total >= lSize){
-			break;
-		}
+		//printf("total:%d/ lSize:%d\n", total, lSize);
+		//if (total >= lSize){
+		//	break;
+		//}
 		
 		
 	}
@@ -269,8 +250,7 @@ int main(int argc, char*argv[]){
 	
 	
 	doStuff(sockFD, cipherText, key);
-	printf("JESUS IS GREATER!\n");
-	
+		
 	close(sockFD);
 	return 0;
 

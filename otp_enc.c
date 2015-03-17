@@ -239,9 +239,9 @@ openTextFile(int sockFD, char* myFile){
 		//printf("sent:%d", sizeSent);
 		total += sizeSent;
 		//printf("total:%d\n bytesRead:%d\n", total, bytesRead);
-		if (total >= lSize){
-			break;
-		}
+		//if (total >= lSize){
+		//	break;
+		//}
 		
 		
 	}

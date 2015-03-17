@@ -80,22 +80,11 @@ char *sLargent(int sockFD){
 char *incomingText(int nyFD, char *returnText, int length ){
 	
 	/*
-	inBuf will take chunks, and copy that to returnText
-	returnText will  for a size to allocate memory
-	sizeFirst will take the size sent by the client, 
-	which helps to know when to stop receiving data
-	*/
-	char *inBuf =  (char*) malloc(1024);
-	
-	char goodCopy[] = "1111";
-	memset(&inBuf[0], 0, 1024);
-	
-	/*
 	bytesIN couts the bytes from receive, 
 	bytesTotal keeps a running total
-	length is the int of the char* sizeFirst
-	i is a flag to keep track if it is the first pass through or not for copying data
+	i is a flag to keep track if it is the  pass through for error checking
 	*/
+	char goodCopy[] = "1111";
 	size_t bytesIN;
 	int bytesTotal = 0;
 	int i = 0;
@@ -103,58 +92,28 @@ char *incomingText(int nyFD, char *returnText, int length ){
 	
 	/*----------------------------------------------------SEDNING REPLY--------------------------*/
 	outgoing(nyFD, goodCopy);
-	
-		
+			
 	/*-------------------------------------------RECEIVE LOOP--------------------------------*/
 	while (bytesTotal <= length){
-		if (bytesIN = recv(nyFD, inBuf, 1024, 0 ) < 0){
-			printf("nothing was received\n");
-			sleep(1);
-		}
-		else{
-			bytesIN = strlen(inBuf);
+		bytesIN = recv(nyFD, returnText+bytesTotal, 1024, 0 );
 			bytesTotal += bytesIN;
-			//printf("%s",inBuf);
-			//printf("\nbytesIN:%d\n", bytesIN);
-			//printf("pass: %d\n total: %d/Size%d\n",i,  bytesTotal, length);
-			if (i == 0){
-				sprintf(returnText, inBuf);
-				//printf("%d's recv:\n%s",i, returnText);
-				i += 1;
-			}
-			else {
-				sprintf(returnText+strlen(returnText), inBuf);
-				//printf("%d's recv:\n%s",i, returnText);
-				i+=1;
-				
-			}
-		}
+			
 		if(bytesTotal >= length)
 				break;
 		
 	}
 		
-	free(inBuf);
 	
 	return returnText;
 }
 char *incomingKey(int nyFD, char *returnKey, int length ){
-	
-	/*
-	inBuf will take chunks, and copy that to returnKey
-	returnKey will  for a size to allocate memory
-	sizeFirst will take the size sent by the client, which helps to know when to stop receiving data
-	*/
-	char *inBuf =  (char*) malloc(1024);
-	
-	//char *sizeFirst = (char*) malloc(512);
-	char goodCopy[] = "1111";
 	/*
 	bytesIN couts the bytes from receive, 
 	bytesTotal keeps a running total
 	length is the int of the char* sizeFirst
 	i is a flag to keep track if it is the first pass through or not for copying data
 	*/
+	char goodCopy[] = "1111";
 	size_t bytesIN;
 	int bytesTotal = 0;
 	//int length;
@@ -166,35 +125,17 @@ char *incomingKey(int nyFD, char *returnKey, int length ){
 			
 	/*-------------------------------------------RECEIVE LOOP--------------------------------*/
 	while (bytesTotal <= length){
-		if (bytesIN = recv(nyFD, inBuf, (1024), 0 ) < 0){
-			printf("nothing was received\n");
-			sleep(1);
-		}
-		else{
-			bytesIN = strlen(inBuf);
+		bytesIN = recv(nyFD, returnKey+bytesTotal, 1024, 0 );
 			bytesTotal += bytesIN;
 			//printf("%s",inBuf);
-			//printf("\nbytesIN:%d\n", bytesIN);
-			//printf("pass: %d\n total: %d/Size%d\n",i,  bytesTotal, length);
-			if (i == 0){
-				sprintf(returnKey, inBuf);
-				//printf("%d's recv:\n%s",i, returnKey);
-				
-				i += 1;
-			}
-			else {
-				sprintf(returnKey+strlen(returnKey), inBuf);
-				//printf("%d's recv:\n%s",i, returnKey);
-				i+=1;
-				
-			}
-		}
+			//printf("Text: bytesIN:%d\n", bytesIN);
+			//printf("text pass: %d\n total: %d/Size%d\n",i,  bytesTotal, length);
+			//i+=1;
+		
 		if(bytesTotal >= length)
 				break;
 		
 	}
-		
-	free(inBuf);
 	return returnKey;
 }
 /*This function will create the cipher text and return the cipher text file*/
@@ -374,11 +315,10 @@ void switchBoard(int nyFD){
 	plain =  (char*) malloc(plainSize + 1024); 
 	memset(&plain[0], 0, plainSize+1024);
 	
-	cipher =  (char*) malloc(plainSize + 1024); 
+	cipher =  (char *) malloc(plainSize + 1024); 
 	memset(&cipher[0], 0, plainSize+1024);
 	
 	plain = incomingText(nyFD, plain, plainSize);
-	
 	keyCodeSize = getKeySize(nyFD);
 	keyCode = (char*)malloc(keyCodeSize+1024);
 	keyCode = incomingKey(nyFD, keyCode, keyCodeSize);

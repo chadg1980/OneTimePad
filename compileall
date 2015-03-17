@@ -1,0 +1,6 @@
+#!/bin/bash
+#Chad Glaser
+#CS 344
+#compileAll
+
+echo 'hello'
